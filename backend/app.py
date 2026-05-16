@@ -1,13 +1,16 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
+# Configuração do banco SQLite
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+
+# Model da tabela
 class LessonPlan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
@@ -19,18 +22,125 @@ class LessonPlan(db.Model):
     support_resources = db.Column(db.Text)
     tags = db.Column(db.Text)
 
-    with app.app_context():
-        db.create_all()
 
+# Cria o banco automaticamente
+with app.app_context():
+    db.create_all()
+
+
+# Rota inicial
 @app.route('/')
 def home():
     return {"message": "API funcionando"}
 
 
+# Health check
 @app.route('/health')
 def health():
     return {"status": "ok"}
 
 
+# Criar plano de aula
+@app.route('/lesson-plans', methods=['POST'])
+def create_plan():
+    data = request.json
+
+    plan = LessonPlan(
+        title=data['title'],
+        objective=data.get('objective'),
+        summary=data.get('summary'),
+        planned_date=data.get('planned_date'),
+        discipline=data.get('discipline'),
+        contents=data.get('contents'),
+        support_resources=data.get('support_resources'),
+        tags=data.get('tags')
+    )
+
+    db.session.add(plan)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Plano criado com sucesso"
+    }), 201
+
+
+# Listar todos os planos
+@app.route('/lesson-plans', methods=['GET'])
+def get_plans():
+    plans = LessonPlan.query.all()
+
+    result = []
+
+    for plan in plans:
+        result.append({
+            "id": plan.id,
+            "title": plan.title,
+            "objective": plan.objective,
+            "summary": plan.summary,
+            "planned_date": plan.planned_date,
+            "discipline": plan.discipline,
+            "contents": plan.contents,
+            "support_resources": plan.support_resources,
+            "tags": plan.tags
+        })
+
+    return jsonify(result)
+
+
+# Buscar plano por ID
+@app.route('/lesson-plans/<int:id>', methods=['GET'])
+def get_plan(id):
+    plan = LessonPlan.query.get_or_404(id)
+
+    return jsonify({
+        "id": plan.id,
+        "title": plan.title,
+        "objective": plan.objective,
+        "summary": plan.summary,
+        "planned_date": plan.planned_date,
+        "discipline": plan.discipline,
+        "contents": plan.contents,
+        "support_resources": plan.support_resources,
+        "tags": plan.tags
+    })
+
+
+# Atualizar plano
+@app.route('/lesson-plans/<int:id>', methods=['PUT'])
+def update_plan(id):
+    plan = LessonPlan.query.get_or_404(id)
+
+    data = request.json
+
+    plan.title = data['title']
+    plan.objective = data.get('objective')
+    plan.summary = data.get('summary')
+    plan.planned_date = data.get('planned_date')
+    plan.discipline = data.get('discipline')
+    plan.contents = data.get('contents')
+    plan.support_resources = data.get('support_resources')
+    plan.tags = data.get('tags')
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Plano atualizado com sucesso"
+    })
+
+
+# Remover plano
+@app.route('/lesson-plans/<int:id>', methods=['DELETE'])
+def delete_plan(id):
+    plan = LessonPlan.query.get_or_404(id)
+
+    db.session.delete(plan)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Plano removido com sucesso"
+    })
+
+
+# Inicialização do servidor
 if __name__ == '__main__':
     app.run(debug=True)
