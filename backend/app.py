@@ -1,5 +1,11 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from dotenv import load_dotenv
+from openai import OpenAI
+import os
+import json
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -8,6 +14,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
+
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY")
+)
 
 
 # Model da tabela
@@ -140,6 +150,40 @@ def delete_plan(id):
         "message": "Plano removido com sucesso"
     })
 
+@app.route("/recommendations", methods=["POST"])
+def generate_recommendations():
+    data = request.json
+
+    prompt = f"""
+    Gere uma recomendação de plano de aula sobre:
+    Disciplina: {data.get("discipline")}
+    Tema: {data.get("topic")}
+    """
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+
+        content = response.choices[0].message.content
+
+        return jsonify({
+            "success": True,
+            "recommendation": content
+        })
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": "API da OpenAI sem créditos ou indisponível.",
+            "error": str(e)
+        }), 500
 
 # Inicialização do servidor
 if __name__ == '__main__':

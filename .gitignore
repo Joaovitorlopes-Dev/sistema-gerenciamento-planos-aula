@@ -1,0 +1,22 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Variáveis de ambiente
+.env
+
+# Banco de dados
+*.db
+
+# Node
+node_modules/
+
+# Build frontend
+dist/
+
+# VSCode
+.vscode/
+
+# Sistema operacional
+.DS_Store
