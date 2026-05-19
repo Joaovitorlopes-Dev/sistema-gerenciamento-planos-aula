@@ -1,228 +1,152 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import "./App.css";
 
 function App() {
-
   const [plans, setPlans] = useState([]);
 
-  const [form, setForm] = useState({
-    title: "",
-    discipline: "",
-    summary: "",
-    contents: "",
-    planned_date: ""
-  });
+  const [title, setTitle] = useState("");
+  const [discipline, setDiscipline] = useState("");
+  const [summary, setSummary] = useState("");
+  const [contents, setContents] = useState("");
+  const [plannedDate, setPlannedDate] = useState("");
 
   async function loadPlans() {
-
     try {
-
       const response = await axios.get(
         "http://127.0.0.1:5000/lesson-plans"
       );
 
       setPlans(response.data);
-
     } catch (error) {
-
-      console.log("ERRO:", error);
-
+      console.log(error);
     }
   }
 
   useEffect(() => {
-
     loadPlans();
-
   }, []);
 
   async function createPlan(e) {
-
     e.preventDefault();
 
     try {
-
-      await axios.post(
-        "http://127.0.0.1:5000/lesson-plans",
-        form
-      );
-
-      alert("Plano criado com sucesso!");
-
-      setForm({
-        title: "",
-        discipline: "",
-        summary: "",
-        contents: "",
-        planned_date: ""
+      await axios.post("http://127.0.0.1:5000/lesson-plans", {
+        title,
+        discipline,
+        summary,
+        contents,
+        planned_date: plannedDate,
       });
 
+      setTitle("");
+      setDiscipline("");
+      setSummary("");
+      setContents("");
+      setPlannedDate("");
+
       loadPlans();
-
     } catch (error) {
-
       console.log(error);
-
     }
   }
 
   async function deletePlan(id) {
-
     try {
-
       await axios.delete(
         `http://127.0.0.1:5000/lesson-plans/${id}`
       );
 
       loadPlans();
-
     } catch (error) {
-
       console.log(error);
-
     }
   }
 
   return (
+    <div className="container">
+      <div className="header">
+        <h1>Sistema de Planos de Aula</h1>
+        <p>Gerencie seus planos de aula de forma simples e moderna.</p>
+      </div>
 
-    <div style={{ padding: 20 }}>
-
-      <h1>Planos de Aula</h1>
-
-      <form onSubmit={createPlan}>
-
+      <form className="form" onSubmit={createPlan}>
         <input
           type="text"
           placeholder="Título"
-          value={form.title}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              title: e.target.value
-            })
-          }
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
         />
-
-        <br /><br />
 
         <input
           type="text"
           placeholder="Disciplina"
-          value={form.discipline}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              discipline: e.target.value
-            })
-          }
+          value={discipline}
+          onChange={(e) => setDiscipline(e.target.value)}
+          required
         />
 
-        <br /><br />
-
-        <input
-          type="text"
+        <textarea
           placeholder="Resumo"
-          value={form.summary}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              summary: e.target.value
-            })
-          }
+          value={summary}
+          onChange={(e) => setSummary(e.target.value)}
         />
 
-        <br /><br />
-
-        <input
-          type="text"
+        <textarea
           placeholder="Conteúdo"
-          value={form.contents}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              contents: e.target.value
-            })
-          }
+          value={contents}
+          onChange={(e) => setContents(e.target.value)}
         />
-
-        <br /><br />
 
         <input
           type="date"
-          value={form.planned_date}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              planned_date: e.target.value
-            })
-          }
+          value={plannedDate}
+          onChange={(e) => setPlannedDate(e.target.value)}
         />
-
-        <br /><br />
 
         <button type="submit">
           Criar Plano
         </button>
-
       </form>
 
-      <hr />
+      <div className="plans-grid">
+        {plans.length === 0 ? (
+          <p className="empty">
+            Nenhum plano encontrado
+          </p>
+        ) : (
+          plans.map((plan) => (
+            <div className="card" key={plan.id}>
+              <h2>{plan.title}</h2>
 
-      {
-        plans.length === 0
-          ? (
-            <p>Nenhum plano encontrado</p>
-          )
-          : (
-            plans.map((plan) => (
+              <span className="discipline">
+                {plan.discipline}
+              </span>
 
-              <div
-                key={plan.id}
-                style={{
-                  border: "1px solid gray",
-                  padding: 10,
-                  marginBottom: 10
-                }}
+              <p>
+                <strong>Resumo:</strong> {plan.summary}
+              </p>
+
+              <p>
+                <strong>Conteúdo:</strong> {plan.contents}
+              </p>
+
+              <p>
+                <strong>Data:</strong>{" "}
+                {plan.planned_date}
+              </p>
+
+              <button
+                className="delete-btn"
+                onClick={() => deletePlan(plan.id)}
               >
-
-                <h2>{plan.title}</h2>
-
-                <p>
-                  <strong>Disciplina:</strong>
-                  {" "}
-                  {plan.discipline}
-                </p>
-
-                <p>
-                  <strong>Resumo:</strong>
-                  {" "}
-                  {plan.summary}
-                </p>
-
-                <p>
-                  <strong>Conteúdo:</strong>
-                  {" "}
-                  {plan.contents}
-                </p>
-
-                <p>
-                  <strong>Data:</strong>
-                  {" "}
-                  {plan.planned_date}
-                </p>
-
-                <button
-                  onClick={() => deletePlan(plan.id)}
-                >
-                  Deletar
-                </button>
-
-              </div>
-
-            ))
-          )
-      }
-
+                Deletar
+              </button>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
