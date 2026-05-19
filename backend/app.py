@@ -1,23 +1,20 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 from dotenv import load_dotenv
 from openai import OpenAI
 import os
-import json
 
 load_dotenv()
 
 app = Flask(__name__)
 
-# Configuração do banco SQLite
+CORS(app, resources={r"/*": {"origins": "*"}})
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-
-client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
-)
 
 
 # Model da tabela
@@ -32,6 +29,19 @@ class LessonPlan(db.Model):
     support_resources = db.Column(db.Text)
     tags = db.Column(db.Text)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "objective": self.objective,
+            "summary": self.summary,
+            "planned_date": self.planned_date,
+            "discipline": self.discipline,
+            "contents": self.contents,
+            "support_resources": self.support_resources,
+            "tags": self.tags
+        }
+
 
 # Cria o banco automaticamente
 with app.app_context():
@@ -41,19 +51,29 @@ with app.app_context():
 # Rota inicial
 @app.route('/')
 def home():
-    return {"message": "API funcionando"}
+    return {
+        "message": "API funcionando"
+    }
 
 
 # Health check
 @app.route('/health')
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok"
+    }
 
 
 # Criar plano de aula
 @app.route('/lesson-plans', methods=['POST'])
 def create_plan():
+
     data = request.json
+
+    if not data.get("title"):
+        return jsonify({
+            "error": "Título é obrigatório"
+        }), 400
 
     plan = LessonPlan(
         title=data['title'],
@@ -70,54 +90,68 @@ def create_plan():
     db.session.commit()
 
     return jsonify({
-        "message": "Plano criado com sucesso"
+        "message": "Plano criado com sucesso",
+        "data": plan.to_dict()
     }), 201
 
 
 # Listar todos os planos
 @app.route('/lesson-plans', methods=['GET'])
 def get_plans():
+
     plans = LessonPlan.query.all()
 
-    result = []
-
-    for plan in plans:
-        result.append({
-            "id": plan.id,
-            "title": plan.title,
-            "objective": plan.objective,
-            "summary": plan.summary,
-            "planned_date": plan.planned_date,
-            "discipline": plan.discipline,
-            "contents": plan.contents,
-            "support_resources": plan.support_resources,
-            "tags": plan.tags
-        })
-
-    return jsonify(result)
+    return jsonify([
+        plan.to_dict() for plan in plans
+    ])
 
 
 # Buscar plano por ID
 @app.route('/lesson-plans/<int:id>', methods=['GET'])
 def get_plan(id):
+
     plan = LessonPlan.query.get_or_404(id)
 
+    return jsonify(plan.to_dict())
+
+
+# Buscar por disciplina
+@app.route('/lesson-plans/discipline/<string:discipline>', methods=['GET'])
+def get_by_discipline(discipline):
+
+    plans = LessonPlan.query.filter_by(
+        discipline=discipline
+    ).all()
+
+    return jsonify([
+        plan.to_dict() for plan in plans
+    ])
+
+
+# Paginação
+@app.route('/lesson-plans/paginated', methods=['GET'])
+def paginated_plans():
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 2
+
+    plans = LessonPlan.query.paginate(
+        page=page,
+        per_page=per_page
+    )
+
     return jsonify({
-        "id": plan.id,
-        "title": plan.title,
-        "objective": plan.objective,
-        "summary": plan.summary,
-        "planned_date": plan.planned_date,
-        "discipline": plan.discipline,
-        "contents": plan.contents,
-        "support_resources": plan.support_resources,
-        "tags": plan.tags
+        "page": page,
+        "total": plans.total,
+        "pages": plans.pages,
+        "data": [plan.to_dict() for plan in plans.items]
     })
 
 
 # Atualizar plano
 @app.route('/lesson-plans/<int:id>', methods=['PUT'])
 def update_plan(id):
+
     plan = LessonPlan.query.get_or_404(id)
 
     data = request.json
@@ -134,13 +168,15 @@ def update_plan(id):
     db.session.commit()
 
     return jsonify({
-        "message": "Plano atualizado com sucesso"
+        "message": "Plano atualizado com sucesso",
+        "data": plan.to_dict()
     })
 
 
 # Remover plano
 @app.route('/lesson-plans/<int:id>', methods=['DELETE'])
 def delete_plan(id):
+
     plan = LessonPlan.query.get_or_404(id)
 
     db.session.delete(plan)
@@ -150,40 +186,30 @@ def delete_plan(id):
         "message": "Plano removido com sucesso"
     })
 
-@app.route("/recommendations", methods=["POST"])
+
+# Recomendações sem OpenAI
+@app.route('/recommendations', methods=['POST'])
 def generate_recommendations():
+
     data = request.json
 
-    prompt = f"""
-    Gere uma recomendação de plano de aula sobre:
-    Disciplina: {data.get("discipline")}
-    Tema: {data.get("topic")}
-    """
+    discipline = data.get("discipline")
+    topic = data.get("topic")
 
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        )
+    recommendation = {
+        "title": f"Aula sobre {topic}",
+        "objective": f"Ensinar os conceitos principais de {topic}",
+        "summary": f"Aula introdutória da disciplina de {discipline} sobre {topic}.",
+        "contents": f"Conceitos fundamentais de {topic}",
+        "support_resources": "Slides, vídeos e exercícios",
+        "tags": f"{discipline.lower()},{topic.lower()}"
+    }
 
-        content = response.choices[0].message.content
+    return jsonify({
+        "success": True,
+        "recommendation": recommendation
+    })
 
-        return jsonify({
-            "success": True,
-            "recommendation": content
-        })
-
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": "API da OpenAI sem créditos ou indisponível.",
-            "error": str(e)
-        }), 500
 
 # Inicialização do servidor
 if __name__ == '__main__':
