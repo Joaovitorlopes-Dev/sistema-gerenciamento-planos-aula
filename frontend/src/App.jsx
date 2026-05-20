@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+
 import {
   FaBook,
   FaTrash,
@@ -12,22 +13,46 @@ import "./App.css";
 function App() {
   const [plans, setPlans] = useState([]);
 
+  const [loading, setLoading] =
+    useState(false);
+
+  const [error, setError] = useState("");
+
+  const [search, setSearch] = useState("");
+
   const [title, setTitle] = useState("");
-  const [discipline, setDiscipline] = useState("");
-  const [summary, setSummary] = useState("");
-  const [contents, setContents] = useState("");
+  const [discipline, setDiscipline] =
+    useState("");
+  const [summary, setSummary] =
+    useState("");
+  const [contents, setContents] =
+    useState("");
   const [plannedDate, setPlannedDate] =
     useState("");
 
   async function loadPlans() {
     try {
+      setLoading(true);
+
       const response = await axios.get(
         "http://127.0.0.1:5000/lesson-plans"
       );
 
-      setPlans(response.data);
+     setPlans(
+  Array.isArray(response.data)
+    ? response.data
+    : []
+);
+
+      setError("");
     } catch (error) {
       console.log(error);
+
+      setError(
+        "Erro ao carregar planos."
+      );
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -38,7 +63,21 @@ function App() {
   async function createPlan(e) {
     e.preventDefault();
 
+    if (
+      !title ||
+      !discipline ||
+      !summary
+    ) {
+      alert(
+        "Preencha os campos obrigatórios."
+      );
+
+      return;
+    }
+
     try {
+      setLoading(true);
+
       await axios.post(
         "http://127.0.0.1:5000/lesson-plans",
         {
@@ -59,6 +98,12 @@ function App() {
       loadPlans();
     } catch (error) {
       console.log(error);
+
+      setError(
+        "Erro ao criar plano."
+      );
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -71,8 +116,20 @@ function App() {
       loadPlans();
     } catch (error) {
       console.log(error);
+
+      setError(
+        "Erro ao deletar plano."
+      );
     }
   }
+
+const filteredPlans = Array.isArray(plans)
+  ? plans.filter((plan) =>
+      plan.title
+        ?.toLowerCase()
+        .includes(search.toLowerCase())
+    )
+  : [];
 
   return (
     <div className="app">
@@ -89,7 +146,12 @@ function App() {
 
         <div className="stats">
           <span>Total de planos</span>
-          <strong>{plans.length}</strong>
+
+       <strong>
+  {Array.isArray(plans)
+    ? plans.length
+    : 0}
+</strong>
         </div>
       </aside>
 
@@ -101,6 +163,10 @@ function App() {
             <input
               type="text"
               placeholder="Buscar planos..."
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
             />
           </div>
         </div>
@@ -147,23 +213,43 @@ function App() {
               type="date"
               value={plannedDate}
               onChange={(e) =>
-                setPlannedDate(e.target.value)
+                setPlannedDate(
+                  e.target.value
+                )
               }
             />
 
             <button type="submit">
               <FaPlus />
-              Criar Plano
+              {loading
+                ? "Carregando..."
+                : "Criar Plano"}
             </button>
           </form>
         </section>
 
+        {error && (
+          <p
+            style={{
+              color: "#ef4444",
+              marginBottom: "20px",
+            }}
+          >
+            {error}
+          </p>
+        )}
+
         <section className="cards">
-          {plans.length === 0 ? (
-            <p>Nenhum plano encontrado.</p>
+          {filteredPlans.length === 0 ? (
+            <p>
+              Nenhum plano encontrado.
+            </p>
           ) : (
-            plans.map((plan) => (
-              <div className="card" key={plan.id}>
+            filteredPlans.map((plan) => (
+              <div
+                className="card"
+                key={plan.id}
+              >
                 <div className="card-header">
                   <h3>{plan.title}</h3>
 
