@@ -5,99 +5,156 @@
 }
 
 body {
-  background: #0f172a;
-  font-family: Arial, Helvetica, sans-serif;
+  background: #020617;
   color: white;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-.container {
-  max-width: 1200px;
-  margin: auto;
-  padding: 40px 20px;
+.app {
+  display: flex;
+  min-height: 100vh;
 }
 
-.header {
-  margin-bottom: 30px;
+.sidebar {
+  width: 280px;
+  background: #0f172a;
+  padding: 30px;
 }
 
-.header h1 {
-  font-size: 42px;
-  margin-bottom: 10px;
+.sidebar h1 {
+  color: #3b82f6;
+  margin-bottom: 20px;
 }
 
-.header p {
+.sidebar p {
   color: #94a3b8;
 }
 
-.form {
+.stats {
+  margin-top: 30px;
   background: #1e293b;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.content {
+  flex: 1;
+  padding: 40px;
+}
+
+.topbar {
+  margin-bottom: 30px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  background: #1e293b;
+  color: white;
+}
+
+.form-container {
+  background: #0f172a;
   padding: 25px;
   border-radius: 16px;
   margin-bottom: 30px;
+}
 
+.form-container h2 {
+  margin-bottom: 20px;
+}
+
+.form-container form {
   display: flex;
   flex-direction: column;
   gap: 15px;
 }
 
-.form input,
-.form textarea {
+.form-container input,
+.form-container textarea {
   padding: 14px;
-  border: none;
   border-radius: 10px;
-  background: #334155;
+  border: none;
+  background: #1e293b;
   color: white;
-  font-size: 15px;
 }
 
-.form textarea {
+.form-container input:focus,
+.form-container textarea:focus {
+  outline: none;
+
+  border: 1px solid #3b82f6;
+
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.25);
+}
+.form-container textarea {
+  height: 120px;
   resize: none;
-  height: 100px;
 }
 
-.form button {
-  background: #3b82f6;
+.form-container button {
+  background: linear-gradient(
+    135deg,
+    #2563eb,
+    #3b82f6
+  );
+
   border: none;
+
   padding: 14px;
+
   border-radius: 10px;
+
   color: white;
-  font-size: 16px;
+
+  font-weight: bold;
+
   cursor: pointer;
+
   transition: 0.3s;
+
 }
 
-.form button:hover {
-  background: #2563eb;
+.form-container button:hover {
+  transform: translateY(-2px);
+
+  opacity: 0.95;
 }
 
-.plans-grid {
+.cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 20px;
 }
 
 .card {
-  background: #1e293b;
+  background: #0f172a;
   padding: 20px;
   border-radius: 16px;
+
   transition: 0.3s;
 }
 
 .card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
+
+  box-shadow: 0 0 20px rgba(37, 99, 235, 0.25);
+
+  border: 1px solid #2563eb;
 }
 
-.card h2 {
-  margin-bottom: 10px;
-}
-
-.discipline {
-  display: inline-block;
-  background: #3b82f6;
-  padding: 5px 10px;
-  border-radius: 999px;
+.card-header {
+  display: flex;
+  justify-content: space-between;
   margin-bottom: 15px;
-  font-size: 14px;
+}
+
+.card-header span {
+  background: #2563eb;
+  padding: 6px 12px;
+  border-radius: 999px;
 }
 
 .card p {
@@ -105,22 +162,13 @@ body {
   color: #cbd5e1;
 }
 
-.delete-btn {
+.card button {
   width: 100%;
-  margin-top: 10px;
-  background: #ef4444;
+  margin-top: 15px;
+  background: #dc2626;
   border: none;
   padding: 12px;
   border-radius: 10px;
   color: white;
   cursor: pointer;
-  transition: 0.3s;
-}
-
-.delete-btn:hover {
-  background: #dc2626;
-}
-
-.empty {
-  color: #94a3b8;
 }
