@@ -6,6 +6,7 @@ import {
   FaTrash,
   FaPlus,
   FaSearch,
+  FaEdit,
 } from "react-icons/fa";
 
 import "./App.css";
@@ -16,9 +17,11 @@ function App() {
   const [loading, setLoading] =
     useState(false);
 
-  const [error, setError] = useState("");
+  const [search, setSearch] =
+    useState("");
 
-  const [search, setSearch] = useState("");
+  const [editingId, setEditingId] =
+    useState(null);
 
   const [title, setTitle] = useState("");
   const [discipline, setDiscipline] =
@@ -38,19 +41,13 @@ function App() {
         "http://127.0.0.1:5000/lesson-plans"
       );
 
-     setPlans(
-  Array.isArray(response.data)
-    ? response.data
-    : []
-);
-
-      setError("");
+      setPlans(
+        Array.isArray(response.data)
+          ? response.data
+          : []
+      );
     } catch (error) {
       console.log(error);
-
-      setError(
-        "Erro ao carregar planos."
-      );
     } finally {
       setLoading(false);
     }
@@ -78,30 +75,39 @@ function App() {
     try {
       setLoading(true);
 
-      await axios.post(
-        "http://127.0.0.1:5000/lesson-plans",
-        {
-          title,
-          discipline,
-          summary,
-          contents,
-          planned_date: plannedDate,
-        }
-      );
+      if (editingId) {
+        await axios.put(
+          `http://127.0.0.1:5000/lesson-plans/${editingId}`,
+          {
+            title,
+            discipline,
+            summary,
+            contents,
+            planned_date:
+              plannedDate,
+          }
+        );
 
-      setTitle("");
-      setDiscipline("");
-      setSummary("");
-      setContents("");
-      setPlannedDate("");
+        setEditingId(null);
+      } else {
+        await axios.post(
+          "http://127.0.0.1:5000/lesson-plans",
+          {
+            title,
+            discipline,
+            summary,
+            contents,
+            planned_date:
+              plannedDate,
+          }
+        );
+      }
+
+      clearForm();
 
       loadPlans();
     } catch (error) {
       console.log(error);
-
-      setError(
-        "Erro ao criar plano."
-      );
     } finally {
       setLoading(false);
     }
@@ -116,42 +122,65 @@ function App() {
       loadPlans();
     } catch (error) {
       console.log(error);
-
-      setError(
-        "Erro ao deletar plano."
-      );
     }
   }
 
-const filteredPlans = Array.isArray(plans)
-  ? plans.filter((plan) =>
-      plan.title
-        ?.toLowerCase()
-        .includes(search.toLowerCase())
-    )
-  : [];
+  function editPlan(plan) {
+    setEditingId(plan.id);
+
+    setTitle(plan.title || "");
+    setDiscipline(
+      plan.discipline || ""
+    );
+    setSummary(plan.summary || "");
+    setContents(plan.contents || "");
+    setPlannedDate(
+      plan.planned_date || ""
+    );
+  }
+
+  function clearForm() {
+    setTitle("");
+    setDiscipline("");
+    setSummary("");
+    setContents("");
+    setPlannedDate("");
+    setEditingId(null);
+  }
+
+  const filteredPlans =
+    Array.isArray(plans)
+      ? plans.filter((plan) =>
+          plan.title
+            ?.toLowerCase()
+            .includes(
+              search.toLowerCase()
+            )
+        )
+      : [];
 
   return (
     <div className="app">
       <aside className="sidebar">
         <h1>
           <FaBook />
-          Lesson Planner
+          Gerenciador de Planos
         </h1>
 
         <p>
-          Sistema moderno de gerenciamento
-          de planos de aula.
+          Sistema moderno de
+          gerenciamento de planos de
+          aula.
         </p>
 
         <div className="stats">
-          <span>Total de planos</span>
+          <span> Total de planos </span>
 
-       <strong>
-  {Array.isArray(plans)
-    ? plans.length
-    : 0}
-</strong>
+          <strong>
+            {Array.isArray(plans)
+              ? plans.length
+              : 0}
+          </strong>
         </div>
       </aside>
 
@@ -165,14 +194,20 @@ const filteredPlans = Array.isArray(plans)
               placeholder="Buscar planos..."
               value={search}
               onChange={(e) =>
-                setSearch(e.target.value)
+                setSearch(
+                  e.target.value
+                )
               }
             />
           </div>
         </div>
 
         <section className="form-container">
-          <h2>Criar Plano</h2>
+          <h2>
+            {editingId
+              ? "Editar Plano"
+              : "Criar Plano"}
+          </h2>
 
           <form onSubmit={createPlan}>
             <input
@@ -180,7 +215,9 @@ const filteredPlans = Array.isArray(plans)
               placeholder="Título"
               value={title}
               onChange={(e) =>
-                setTitle(e.target.value)
+                setTitle(
+                  e.target.value
+                )
               }
             />
 
@@ -189,7 +226,9 @@ const filteredPlans = Array.isArray(plans)
               placeholder="Disciplina"
               value={discipline}
               onChange={(e) =>
-                setDiscipline(e.target.value)
+                setDiscipline(
+                  e.target.value
+                )
               }
             />
 
@@ -197,7 +236,9 @@ const filteredPlans = Array.isArray(plans)
               placeholder="Resumo"
               value={summary}
               onChange={(e) =>
-                setSummary(e.target.value)
+                setSummary(
+                  e.target.value
+                )
               }
             />
 
@@ -205,7 +246,9 @@ const filteredPlans = Array.isArray(plans)
               placeholder="Conteúdo"
               value={contents}
               onChange={(e) =>
-                setContents(e.target.value)
+                setContents(
+                  e.target.value
+                )
               }
             />
 
@@ -221,68 +264,91 @@ const filteredPlans = Array.isArray(plans)
 
             <button type="submit">
               <FaPlus />
+
               {loading
-                ? "Carregando..."
+                ? "Salvando..."
+                : editingId
+                ? "Atualizar Plano"
                 : "Criar Plano"}
             </button>
           </form>
         </section>
 
-        {error && (
-          <p
-            style={{
-              color: "#ef4444",
-              marginBottom: "20px",
-            }}
-          >
-            {error}
-          </p>
-        )}
-
         <section className="cards">
-          {filteredPlans.length === 0 ? (
+          {filteredPlans.length ===
+          0 ? (
             <p>
-              Nenhum plano encontrado.
+              Nenhum plano
+              encontrado.
             </p>
           ) : (
-            filteredPlans.map((plan) => (
-              <div
-                className="card"
-                key={plan.id}
-              >
-                <div className="card-header">
-                  <h3>{plan.title}</h3>
-
-                  <span>
-                    {plan.discipline}
-                  </span>
-                </div>
-
-                <p>
-                  <strong>Resumo:</strong>{" "}
-                  {plan.summary}
-                </p>
-
-                <p>
-                  <strong>Conteúdo:</strong>{" "}
-                  {plan.contents}
-                </p>
-
-                <p>
-                  <strong>Data:</strong>{" "}
-                  {plan.planned_date}
-                </p>
-
-                <button
-                  onClick={() =>
-                    deletePlan(plan.id)
-                  }
+            filteredPlans.map(
+              (plan) => (
+                <div
+                  className="card"
+                  key={plan.id}
                 >
-                  <FaTrash />
-                  Deletar
-                </button>
-              </div>
-            ))
+                  <div className="card-header">
+                    <h3>
+                      {plan.title}
+                    </h3>
+
+                    <span>
+                      {
+                        plan.discipline
+                      }
+                    </span>
+                  </div>
+
+                  <p>
+                    <strong>
+                      Resumo:
+                    </strong>{" "}
+                    {plan.summary}
+                  </p>
+
+                  <p>
+                    <strong>
+                      Conteúdo:
+                    </strong>{" "}
+                    {plan.contents}
+                  </p>
+
+                  <p>
+                    <strong>
+                      Data:
+                    </strong>{" "}
+                    {
+                      plan.planned_date
+                    }
+                  </p>
+
+                  <div className="actions">
+                    <button
+                      className="edit-btn"
+                      onClick={() =>
+                        editPlan(plan)
+                      }
+                    >
+                      <FaEdit />
+                      Editar
+                    </button>
+
+                    <button
+                      className="delete-btn"
+                      onClick={() =>
+                        deletePlan(
+                          plan.id
+                        )
+                      }
+                    >
+                      <FaTrash />
+                      Deletar
+                    </button>
+                  </div>
+                </div>
+              )
+            )
           )}
         </section>
       </main>
